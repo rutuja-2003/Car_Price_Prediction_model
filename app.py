@@ -1,153 +1,134 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import pickle
 
-# ----------------------------
-# PAGE CONFIG
-# ----------------------------
-st.set_page_config(
-    page_title="GitHub Repository Dashboard",
-    page_icon="💻",
-    layout="wide"
+# ==========================================================
+# Load Models and Dataset
+# ==========================================================
+lr = pickle.load(open("LinearRegressionModel.pkl", "rb"))
+dt = pickle.load(open("DecisionTreeModel.pkl", "rb"))
+rf = pickle.load(open("RandomForestModel.pkl", "rb"))
+
+car = pd.read_csv("Cleaned_Car_data.csv")
+
+# ==========================================================
+# Streamlit UI
+# ==========================================================
+st.set_page_config(page_title="Car Price Prediction", page_icon="🚗", layout="wide")
+
+st.title("🚗 Car Price Prediction")
+st.markdown("Welcome! Enter car details in the sidebar and get instant price predictions. "
+            "You can also explore model performance metrics in the tabs below.")
+
+# Sidebar title
+st.sidebar.markdown("<h2 style='margin-top:0;'>🚘 Car Price Predictor</h2>", unsafe_allow_html=True)
+
+# Logo with reduced size
+st.sidebar.image("car_logo.jpg")
+
+# Custom CSS for centering and rounding the image
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 50%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
-# ----------------------------
-# LOAD DATA
-# ----------------------------
-@st.cache_data
-def load_data():
-    return pd.read_csv("data/github.csv")
 
-df = load_data()
+st.sidebar.header("🔧 Enter Car Details")
 
-# ----------------------------
-# SIDEBAR TITLE
-# ----------------------------
-st.sidebar.markdown("## 💻 GitHub Dashboard")
+companies = sorted(car["company"].unique())
+company = st.sidebar.selectbox("Company", companies)
 
-# ----------------------------
-# GLOBAL FILTERS
-# ----------------------------
-st.sidebar.header("🔎 Global Filters")
+# Filter models based on selected company
+models_for_company = sorted(car[car["company"] == company]["name"].unique())
+car_model = st.sidebar.selectbox("Car Model", models_for_company)
 
-owner_filter = st.sidebar.multiselect(
-    "Select Owner",
-    options=df["Owner"].unique(),
-    default=df["Owner"].unique()
-)
+years = sorted(car["year"].unique(), reverse=True)
+fuel_types = car["fuel_type"].unique()
 
-language_filter = st.sidebar.multiselect(
-    "Select Language",
-    options=df["Language"].unique(),
-    default=df["Language"].unique()
-)
+year = st.sidebar.selectbox("Year", years)
+fuel_type = st.sidebar.selectbox("Fuel Type", fuel_types)
+kms_driven = st.sidebar.number_input("Kilometers Driven", min_value=0, max_value=400000, step=1000)
 
-# Apply filters
-df = df[
-    (df["Owner"].isin(owner_filter)) &
-    (df["Language"].isin(language_filter))
-]
 
-# ----------------------------
-# PAGE HEADER
-# ----------------------------
-st.markdown("""
-    <h1 style="text-align:center; color:#22d3ee;">
-        💻 GitHub Repository – Executive Summary
-    </h1>
-    <p style="text-align:center; font-size:18px; color:#e0f2fe;">
-        A high-level overview of repository performance and activity.
-    </p>
-""", unsafe_allow_html=True)
+# Choose model
+model_choice = st.sidebar.radio("Choose Model", ["Linear Regression", "Decision Tree", "Random Forest"])
 
-st.write("")
+# ==========================================================
+# Tabs for Prediction & Comparison
+# ==========================================================
+tab1, tab2 = st.tabs(["🔮 Prediction", "📊 Model Comparison"])
 
-# ----------------------------
-# KPI CARDS
-# ----------------------------
-total_repos = len(df)
-total_stars = int(df["Stars"].sum())
-total_forks = int(df["Forks"].sum())
-avg_issues = round(df["Issues"].mean(), 2)
+with tab1:
+    st.subheader("Car Price Prediction")
+    if st.sidebar.button("Predict Price"):
+        input_df = pd.DataFrame(
+            [[car_model, company, int(year), int(kms_driven), fuel_type]],
+            columns=["name","company","year","kms_driven","fuel_type"]
+        )
 
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        if model_choice == "Linear Regression":
+            prediction = lr.predict(input_df)[0]
+        elif model_choice == "Decision Tree":
+            prediction = dt.predict(input_df)[0]
+        else:
+            prediction = rf.predict(input_df)[0]
 
-kpi1.metric(
-    label="📂 Total Repositories",
-    value=f"{total_repos:,}"
-)
+        st.success(f"Estimated Price ({model_choice}): ₹ {int(prediction):,}")
 
-kpi2.metric(
-    label="⭐ Total Stars",
-    value=f"{total_stars:,}"
-)
+        # Show input summary in columns
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**Company:**", company)
+            st.write("**Model:**", car_model)
+        with col2:
+            st.write("**Year:**", year)
+            st.write("**Fuel Type:**", fuel_type)
+            st.write("**Kms Driven:**", kms_driven)
 
-kpi3.metric(
-    label="🍴 Total Forks",
-    value=f"{total_forks:,}"
-)
+with tab2:
+    st.subheader("📊 Model Performance Comparison")
 
-kpi4.metric(
-    label="🐞 Avg Issues per Repo",
-    value=f"{avg_issues}"
-)
+    # Show metrics side by side
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="Linear Regression R²", value="-0.091")
+        st.metric(label="MAE", value="188,346")
+        st.metric(label="RMSE", value="465,385")
+    with col2:
+        st.metric(label="Decision Tree R²", value="0.174")
+        st.metric(label="MAE", value="184,446")
+        st.metric(label="RMSE", value="404,749")
+    with col3:
+        st.metric(label="Random Forest R²", value="0.047")
+        st.metric(label="MAE", value="187,173")
+        st.metric(label="RMSE", value="434,783")
 
-st.write("---")
-
-# ----------------------------
-# LANGUAGE DISTRIBUTION
-# ----------------------------
-col1, col2 = st.columns([1.2, 1])
-
-with col1:
-    lang_df = df["Language"].value_counts().reset_index()
-    lang_df.columns = ["Language", "Count"]
-
-    fig = px.pie(
-        lang_df,
-        names="Language",
-        values="Count",
-        title="Repository Language Distribution",
-        hole=0.45
+    st.markdown("---")
+    st.info(
+        "🏆 **Best Model: Decision Tree**\n\n"
+        "- ✅ Highest R² score (≈0.17), meaning it explains more variance in car prices.\n"
+        "- ✅ Lowest RMSE, showing smaller prediction errors compared to others.\n"
+        "- 🔄 Captures complex, non‑linear relationships between features (brand, year, fuel type) and price.\n"
+        "- ⚖️ Random Forest performed moderately but didn’t generalize as well on this dataset.\n"
+        "- ❌ Linear Regression struggled because car prices don’t follow a simple straight line trend.\n\n"
+        "👉 In short, the Decision Tree is the most reliable choice for your dataset."
     )
 
-    fig.update_layout(title_x=0.25)
 
-    st.plotly_chart(fig, use_container_width=True)
 
-with col2:
-    st.markdown("""
-        ### 📌 Key Insights
-        
-        • Most repositories are concentrated in a few programming languages.  
-        
-        • Star and fork counts highlight community engagement.  
-        
-        • Issue counts indicate maintenance needs and project health.  
-        
-        • Owners with consistently high stars/forks may represent **popular projects** worth deeper analysis.
-    """)
+# Highlight the best model
+st.sidebar.markdown("---")
+st.sidebar.info("🏆 **Best Model: Decision Tree**\n\nIt achieved the highest R² score (≈0.17) and lowest error values, meaning it predicts car prices more accurately than the others.")
 
-st.write("---")
-
-# ----------------------------
-# DATA SUMMARY TABLE
-# ----------------------------
-summary_df = pd.DataFrame({
-    "Metric": [
-        "Total Repositories",
-        "Total Stars",
-        "Total Forks",
-        "Average Issues"
-    ],
-    "Value": [
-        total_repos,
-        total_stars,
-        total_forks,
-        avg_issues
-    ]
-})
-
-st.subheader("📋 Data Summary")
-
-st.dataframe(summary_df, use_container_width=True)
+# Footer
+st.markdown("---")
+st.markdown("Project by Rutuja ❤️")
