@@ -252,7 +252,8 @@ Add screenshots of your application after deployment or local execution.
 ### Sidebar
 
 ```markdown
-<img width="959" height="413" alt="image" src="https://github.com/user-attachments/assets/1228d9c0-c913-4dee-a010-c391119380d8" />
+![Prediction](<img width="959" height="413" alt="image" src="https://github.com/user-attachments/assets/1228d9c0-c913-4dee-a010-c391119380d8" />
+)
 
 <img width="959" height="412" alt="image" src="https://github.com/user-attachments/assets/9f50f8d5-a21b-441b-b9b9-2166c50b7d70" />
 
