@@ -249,17 +249,11 @@ pip install -r requirements.txt
 
 ## 📸 Screenshots
 
-### Page 1 
-![Page1](Page1.png)
+![Page1](images/Page1.png)
+![Page2](images/Page2.png)
+![Page3](images/Page3.png)
+![Page4](images/Page4.png)
 
-### Page 2 
-![Page2](Page2.png)
-
-### Page 3 
-![Page3](Page3.png)
-
-### Page 4 
-![Page4](Page4.png)
 
 
 ## 🚀 Future Enhancements
