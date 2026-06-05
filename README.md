@@ -247,8 +247,6 @@ pip install -r requirements.txt
 
 ## 📸 Screenshots
 
-## 📸 Screenshots
-
 ![Page1](images/Page1.png)
 ![Page2](images/Page2.png)
 ![Page3](images/Page3.png)
